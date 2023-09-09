@@ -10,9 +10,10 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { TokenPriceRepository } from './token-price.repository';
 import {
     BITFINEX_API_URL,
-    BITFINEX_TOKEN_SYMBOLS,
+    BITFINEX_TOKEN_DATA,
     BSC_WEB3,
     CHAINLINK_PRICE_FEED_DATA,
+    SOURCE_BITFINEX,
 } from 'src/constants/web3.constants';
 import { BigNumber } from 'bignumber.js';
 import * as fs from 'fs';
@@ -33,6 +34,7 @@ export class TokenPriceService {
             const tokenPriceResults = await this.fetchTokenPrices();
             for await (const result of tokenPriceResults) {
                 if (result.status === 'fulfilled') {
+                    // console.log('result.value', result.value);
                     await this.tokenPriceRepository.save(result.value);
                 }
             }
@@ -65,6 +67,7 @@ export class TokenPriceService {
             if (v.status === 'fulfilled') {
                 acc.push({
                     token_symbol: v.value.symbol,
+                    token_pair: v.value.pair,
                     token_price: v.value.price,
                     price_source: 'Chainlink',
                     timestamp: v.value.timestamp,
@@ -91,6 +94,7 @@ export class TokenPriceService {
 
             return {
                 symbol: CHAINLINK_PRICE_FEED_DATA[token].symbol,
+                pair: CHAINLINK_PRICE_FEED_DATA[token].pair,
                 price,
                 timestamp,
             };
@@ -107,8 +111,7 @@ export class TokenPriceService {
     }
 
     private async fetchBitfinexPrices() {
-        const symbols = this.bitfinexTokenSymbols();
-        const tokenDataArr = await this.getBitfinexTokenData(symbols);
+        const tokenDataArr = await this.getBitfinexTokenData();
         return this.formatBitfinexTokenData(tokenDataArr);
     }
 
@@ -119,8 +122,9 @@ export class TokenPriceService {
             if (v.status === 'fulfilled') {
                 acc.push({
                     token_symbol: v.value.symbol,
+                    token_pair: v.value.pair,
                     token_price: v.value.price,
-                    price_source: 'Bitfinex',
+                    price_source: SOURCE_BITFINEX,
                     timestamp: v.value.timestamp,
                 });
             }
@@ -128,15 +132,17 @@ export class TokenPriceService {
         }, []);
     }
 
-    private async getBitfinexTokenData(
-        symbols: string[],
-    ): Promise<PromiseSettledResult<ITokenData>[]> {
-        const requests = symbols.map(async (symbol) => {
+    private async getBitfinexTokenData(): Promise<
+        PromiseSettledResult<ITokenData>[]
+    > {
+        const keys = Object.keys(BITFINEX_TOKEN_DATA);
+        const requests = keys.map(async (token) => {
             const { data } = await axios.get<IBitfinexResponse>(
-                this.getBitfinexApiUrl(symbol),
+                this.getBitfinexApiUrl(BITFINEX_TOKEN_DATA[token].params),
             );
             return {
-                symbol,
+                symbol: BITFINEX_TOKEN_DATA[token].symbol,
+                pair: BITFINEX_TOKEN_DATA[token].pair,
                 price: data.last_price,
                 timestamp: new Date().toISOString(),
             };
@@ -147,9 +153,5 @@ export class TokenPriceService {
 
     private getBitfinexApiUrl(symbol: string): string {
         return BITFINEX_API_URL + symbol;
-    }
-
-    private bitfinexTokenSymbols(): string[] {
-        return BITFINEX_TOKEN_SYMBOLS;
     }
 }

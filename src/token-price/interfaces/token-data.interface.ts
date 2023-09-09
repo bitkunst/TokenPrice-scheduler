@@ -11,12 +11,14 @@ export interface IBitfinexResponse {
 
 export interface ITokenData {
     symbol: string;
+    pair: string;
     price: string;
     timestamp: string;
 }
 
 export interface ITokenPriceDto {
     token_symbol: string;
+    token_pair: string;
     token_price: string;
     price_source: string;
     timestamp: Date;
