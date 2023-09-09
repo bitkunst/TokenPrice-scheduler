@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { web3Provider } from './web3.provider';
+import { bscWeb3Provider } from './web3.provider';
 
 @Module({
-    providers: [web3Provider],
-    exports: [web3Provider],
+    providers: [bscWeb3Provider],
+    exports: [bscWeb3Provider],
 })
 export class Web3Module {}

@@ -1,37 +1,109 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
-import { WEB3 } from 'src/web3/web3.provider';
 import Web3 from 'web3';
 import {
     IBitfinexResponse,
-    IBitfinexTokenData,
-    ITokenPriceData,
+    ITokenData,
+    ITokenPriceDto,
 } from './interfaces/token-data.interface';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { TokenPriceRepository } from './token-price.repository';
+import {
+    BITFINEX_API_URL,
+    BITFINEX_TOKEN_SYMBOLS,
+    BSC_WEB3,
+    CHAINLINK_PRICE_FEED_DATA,
+} from 'src/constants/web3.constants';
+import { BigNumber } from 'bignumber.js';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class TokenPriceService {
     private readonly logger = new Logger(TokenPriceService.name);
 
     constructor(
-        @Inject(WEB3) private readonly web3: Web3,
+        @Inject(BSC_WEB3) private readonly bscWeb3: Web3,
         private readonly tokenPriceRepository: TokenPriceRepository,
     ) {}
 
     @Cron(CronExpression.EVERY_30_SECONDS)
     async setTokenPrices() {
         try {
-            const bitfinexPrices = await this.fetchBitfinexPrices();
-            this.logger.log('Bitfinex prices', bitfinexPrices);
-
-            await this.tokenPriceRepository.save(bitfinexPrices);
+            const tokenPriceResults = await this.fetchTokenPrices();
+            for await (const result of tokenPriceResults) {
+                if (result.status === 'fulfilled') {
+                    await this.tokenPriceRepository.save(result.value);
+                }
+            }
         } catch (error) {
             this.logger.error(
-                'Failed to fetch and save bitfinex prices',
+                'Failed to fetch and save token prices',
                 error.stack,
             );
         }
+    }
+
+    private async fetchTokenPrices() {
+        const results = await Promise.allSettled([
+            this.fetchBitfinexPrices(),
+            this.fetchChainlinkPrices(),
+        ]);
+
+        return results;
+    }
+
+    private async fetchChainlinkPrices() {
+        const tokenDataArr = await this.getChainlinkTokenData();
+        return this.formatChainlinkTokenData(tokenDataArr);
+    }
+
+    private formatChainlinkTokenData(
+        tokenDataArr: PromiseSettledResult<ITokenData>[],
+    ): ITokenPriceDto[] {
+        return tokenDataArr.reduce((acc, v) => {
+            if (v.status === 'fulfilled') {
+                acc.push({
+                    token_symbol: v.value.symbol,
+                    token_price: v.value.price,
+                    price_source: 'Chainlink',
+                    timestamp: v.value.timestamp,
+                });
+            }
+            return acc;
+        }, []);
+    }
+
+    private async getChainlinkTokenData() {
+        const keys = Object.keys(CHAINLINK_PRICE_FEED_DATA);
+        const requests = keys.map(async (token) => {
+            const contract = this.getChainlinkContractInstance(
+                CHAINLINK_PRICE_FEED_DATA[token].address,
+            );
+            const { answer }: { answer: bigint } = await contract.methods
+                .latestRoundData()
+                .call();
+            const timestamp = new Date().toISOString();
+            const decimals: bigint = await contract.methods.decimals().call();
+            const price = new BigNumber(answer.toString())
+                .dividedBy(new BigNumber(10).pow(decimals.toString()))
+                .toString();
+
+            return {
+                symbol: CHAINLINK_PRICE_FEED_DATA[token].symbol,
+                price,
+                timestamp,
+            };
+        });
+
+        const responses = await Promise.allSettled(requests);
+        return responses;
+    }
+
+    private getChainlinkContractInstance(address: string) {
+        const filePath = path.resolve(__dirname, '../abi/ChainLink.json');
+        const contract_abi = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        return new this.bscWeb3.eth.Contract(contract_abi, address);
     }
 
     private async fetchBitfinexPrices() {
@@ -41,17 +113,15 @@ export class TokenPriceService {
     }
 
     private formatBitfinexTokenData(
-        tokenDataArr: PromiseSettledResult<IBitfinexTokenData>[],
-    ): ITokenPriceData[] {
+        tokenDataArr: PromiseSettledResult<ITokenData>[],
+    ): ITokenPriceDto[] {
         return tokenDataArr.reduce((acc, v) => {
             if (v.status === 'fulfilled') {
                 acc.push({
                     token_symbol: v.value.symbol,
-                    token_price: v.value.data.last_price,
+                    token_price: v.value.price,
                     price_source: 'Bitfinex',
-                    timestamp: new Date(
-                        parseFloat(v.value.data.timestamp) * 1000,
-                    ),
+                    timestamp: v.value.timestamp,
                 });
             }
             return acc;
@@ -60,22 +130,26 @@ export class TokenPriceService {
 
     private async getBitfinexTokenData(
         symbols: string[],
-    ): Promise<PromiseSettledResult<IBitfinexTokenData>[]> {
+    ): Promise<PromiseSettledResult<ITokenData>[]> {
         const requests = symbols.map(async (symbol) => {
             const { data } = await axios.get<IBitfinexResponse>(
                 this.getBitfinexApiUrl(symbol),
             );
-            return { symbol, data };
+            return {
+                symbol,
+                price: data.last_price,
+                timestamp: new Date().toISOString(),
+            };
         });
         const responses = await Promise.allSettled(requests);
         return responses;
     }
 
     private getBitfinexApiUrl(symbol: string): string {
-        return 'https://api.bitfinex.com/v1/pubticker/' + symbol;
+        return BITFINEX_API_URL + symbol;
     }
 
     private bitfinexTokenSymbols(): string[] {
-        return ['USTUSD', 'UDCUSD', 'ETHUSD', 'BTCUSD'];
+        return BITFINEX_TOKEN_SYMBOLS;
     }
 }

@@ -1,6 +1,12 @@
-import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+    AfterInsert,
+    BaseEntity,
+    Column,
+    Entity,
+    PrimaryGeneratedColumn,
+} from 'typeorm';
 
-@Entity({ name: 'Token-Price' })
+@Entity({ name: 'Token_Price' })
 export class TokenPrice extends BaseEntity {
     @PrimaryGeneratedColumn({ type: 'int' })
     id: number;
@@ -16,7 +22,4 @@ export class TokenPrice extends BaseEntity {
 
     @Column({ type: 'timestamp', nullable: true })
     timestamp: Date;
-
-    @Column({ type: 'varchar', length: 255, nullable: true })
-    block_number: string;
 }

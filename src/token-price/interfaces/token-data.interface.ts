@@ -9,12 +9,13 @@ export interface IBitfinexResponse {
     timestamp: string;
 }
 
-export interface IBitfinexTokenData {
+export interface ITokenData {
     symbol: string;
-    data: IBitfinexResponse;
+    price: string;
+    timestamp: string;
 }
 
-export interface ITokenPriceData {
+export interface ITokenPriceDto {
     token_symbol: string;
     token_price: string;
     price_source: string;
