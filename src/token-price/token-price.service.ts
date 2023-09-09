@@ -4,16 +4,17 @@ import Web3 from 'web3';
 import {
     IBitfinexResponse,
     ITokenData,
-    ITokenPriceDto,
-} from './interfaces/token-data.interface';
+    ITokenPrice,
+} from './interfaces/token-price.interface';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { TokenPriceRepository } from './token-price.repository';
+import { TokenPriceRepository } from './repository/token-price.repository';
 import {
     BITFINEX_API_URL,
     BITFINEX_TOKEN_DATA,
     BSC_WEB3,
     CHAINLINK_PRICE_FEED_DATA,
     SOURCE_BITFINEX,
+    SOURCE_CHAINLINK,
 } from 'src/constants/web3.constants';
 import { BigNumber } from 'bignumber.js';
 import * as fs from 'fs';
@@ -34,7 +35,6 @@ export class TokenPriceService {
             const tokenPriceResults = await this.fetchTokenPrices();
             for await (const result of tokenPriceResults) {
                 if (result.status === 'fulfilled') {
-                    // console.log('result.value', result.value);
                     await this.tokenPriceRepository.save(result.value);
                 }
             }
@@ -62,14 +62,14 @@ export class TokenPriceService {
 
     private formatChainlinkTokenData(
         tokenDataArr: PromiseSettledResult<ITokenData>[],
-    ): ITokenPriceDto[] {
+    ): ITokenPrice[] {
         return tokenDataArr.reduce((acc, v) => {
             if (v.status === 'fulfilled') {
                 acc.push({
                     token_symbol: v.value.symbol,
                     token_pair: v.value.pair,
                     token_price: v.value.price,
-                    price_source: 'Chainlink',
+                    price_source: SOURCE_CHAINLINK,
                     timestamp: v.value.timestamp,
                 });
             }
@@ -117,7 +117,7 @@ export class TokenPriceService {
 
     private formatBitfinexTokenData(
         tokenDataArr: PromiseSettledResult<ITokenData>[],
-    ): ITokenPriceDto[] {
+    ): ITokenPrice[] {
         return tokenDataArr.reduce((acc, v) => {
             if (v.status === 'fulfilled') {
                 acc.push({

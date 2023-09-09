@@ -16,7 +16,7 @@ export interface ITokenData {
     timestamp: string;
 }
 
-export interface ITokenPriceDto {
+export interface ITokenPrice {
     token_symbol: string;
     token_pair: string;
     token_price: string;
