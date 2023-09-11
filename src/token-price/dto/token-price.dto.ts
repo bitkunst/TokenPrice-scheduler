@@ -20,9 +20,26 @@ export class TokenPriceDto extends PickType(TokenPrice, [
     })
     token_price: string;
 
-    @ApiProperty({ description: 'token price 출처', example: 'Bitfinex' })
+    @ApiProperty({ description: '가격 출처', example: 'Bitfinex' })
     price_source: string;
 
     @ApiProperty({ description: '타임스탬프', example: '2023-09-09 22:31:00' })
     timestamp: Date;
+}
+
+export class TokenPriceAverageDto {
+    @ApiProperty({ description: 'token symbol', example: 'BTC' })
+    token_symbol: string;
+
+    @ApiProperty({ description: 'token pair', example: 'BTC/USD' })
+    token_pair: string;
+
+    @ApiProperty({ description: '가격 출처', example: 'Bitfinex' })
+    price_source: string;
+
+    @ApiProperty({
+        description: '특정 시간 구간 동안 token pair에 해당하는 평균 가격',
+        example: '25852.23',
+    })
+    average_price: number;
 }

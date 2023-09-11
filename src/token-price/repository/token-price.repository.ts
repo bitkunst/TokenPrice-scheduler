@@ -65,4 +65,26 @@ export class TokenPriceRepository {
 
         return result;
     }
+
+    async findAverage(startTime: string, endTime: string, tokenSymbol: string) {
+        const result = await this.repository
+            .createQueryBuilder()
+            .select([
+                'token_symbol',
+                'token_pair',
+                'price_source',
+                'AVG(token_price) AS average_price',
+            ])
+            .where('token_symbol = :tokenSymbol', { tokenSymbol })
+            .andWhere('timestamp BETWEEN :startTime AND :endTime', {
+                startTime,
+                endTime,
+            })
+            .groupBy('token_symbol')
+            .addGroupBy('token_pair')
+            .addGroupBy('price_source')
+            .getRawMany();
+
+        return result;
+    }
 }
