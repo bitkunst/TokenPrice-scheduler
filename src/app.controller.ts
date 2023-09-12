@@ -1,10 +1,4 @@
-import {
-    BadRequestException,
-    Controller,
-    Get,
-    ParseIntPipe,
-    Query,
-} from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { AppService } from './app.service';
 import {
     ApiOkResponse,

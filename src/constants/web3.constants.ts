@@ -53,3 +53,7 @@ export const CHAINLINK_PRICE_FEED_DATA = {
         address: '0x5741306c21795FdCBb9b265Ea0255F499DFe515C',
     },
 };
+
+// Assignment Contract
+export const ASSIGNMENT_CONTRACT_ADDRESS =
+    '0xbe7a57ae3296b072547910212855f6e30986aa0f';
