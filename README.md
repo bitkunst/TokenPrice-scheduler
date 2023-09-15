@@ -1,7 +1,5 @@
 # User Guide
 
-<br>
-
 ## Requirements
 
 -   git
@@ -15,20 +13,22 @@
 
 ### 1. Clone/Download the Repository
 
-```
+```sh
 git clone
 cd TokenPrice-scheduler
 ```
 
-### 2. Install Dependencies:
+### 2. Install Dependencies
 
-```
+```sh
 $ npm install
 ```
 
 ### 3. Start MySQL Server
 
 ### 4. Create a Database named "test"
+
+-   `test` 라는 이름의 데이터베이스 생성
 
 ### 5. Set up .env
 
@@ -37,9 +37,51 @@ DB_HOST=
 DB_PORT=
 DB_USER=
 DB_PWD=
-DATABASE_NAME=
+DATABASE_NAME=test
 ```
 
+### Run command (Dev mode)
+
+```sh
+$ npm run start:dev
 ```
-PRIVATE_KEY=0xb3f7643e4ba3a22e68376c9dd4a4a982561c6d4fe1753b8dd0fc4bb1a7148102 npm run script:donate
+
+<br>
+
+## BSC 테스트넷 토큰 가격 정보 가져오기
+
+### API SWAGGER
+
+-   http://localhost:3000/api/docs
+
+### GET http://localhost:3000/token
+
+-   토큰 가격 조회 API
+-   query string으로 토큰이름(symbol)과 가격출처(source) 전달
+-   query string 값이 없을시 모든 토큰의 최신 토큰 정보 조회 가능
+-   가격 출처가 다수인 경우 각각 출력
+-   ex) http://localhost:3000/token?symbol=btc&source=bitfinex
+
+### GET http://localhost:3000/token/average
+
+-   특정 시간 구간이 주어졌을 때 해당 시간 동안의 평균 가격 조회 API
+-   query string으로 startTime, endTime, tokenSymbol 전달
+-   startTime, endTime 형식 : `YYYY-MM-DD@HH:mm:ss`
+-   가격 출처가 다수인 경우 각각 출력
+-   ex) http://localhost:3000/token/average?tokenSymbol=eth&startTime=2023-09-09@19:30:00&endTime=2023-09-15@20:30:00
+
+<br>
+
+## Send Transaction Script
+
+### How to run script
+
+-   PRIVATE_KEY 와 AMOUNT 변수에 값을 넣어 스크립트 실행
+-   send transaction 성공시 tx hash 출력
+
+### Command
+
+```sh
+## example
+$ PRIVATE_KEY=0x... AMOUNT=0.01 npm run script:donate
 ```
