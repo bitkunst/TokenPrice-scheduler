@@ -83,6 +83,7 @@ $ npm run start:dev
 ### How to run script
 
 -   PRIVATE_KEY 와 AMOUNT 변수에 값을 넣어 스크립트 실행
+-   AMOUNT 단위는 'ether'
 -   send transaction 성공시 tx hash 출력
 -   BNB Smart Chain Testnet Explorer에서 조회 가능
     -   https://testnet.bscscan.com
